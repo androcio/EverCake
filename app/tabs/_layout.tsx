@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Image, Text } from "react-native";
 import { supabase } from "../../supabaseConfig";
 
-const ADMIN_EMAIL = "agarcia@itpfp.com";
+const ADMIN_EMAIL = "info@tartasdeautor.com";
 
 export default function RootLayout() {
   const [email, setEmail] = useState<string | null>(null);

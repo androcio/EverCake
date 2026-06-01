@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../supabaseConfig";
 
-const ADMIN_EMAIL = "agarcia@itpfp.com";
+const ADMIN_EMAIL = "info@tartasdeautor.com";
 
 export default function Verificar() {
   const router = useRouter();
