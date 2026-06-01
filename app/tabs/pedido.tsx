@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../supabaseConfig";
 import { useCarrito } from "../context/CarritoContext";
 
@@ -37,12 +37,17 @@ const IMAGENES: { [key: number]: any } = {
   30: require("../../assets/images/30.png"),
 };
 
+const ADMIN_EMAIL = "oullea43@gmail.com";
+
 export default function Pedido() {
   const { carrito, eliminar, vaciar } = useCarrito();
   const router = useRouter();
   const [expandido, setExpandido] = useState<number | null>(null);
   const [session, setSession] = useState<any>(null);
   const [enviando, setEnviando] = useState(false);
+  const [modal, setModal] = useState<{ visible: boolean; titulo: string; mensaje: string; accion?: () => void }>({
+    visible: false, titulo: "", mensaje: "",
+  });
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -50,29 +55,26 @@ export default function Pedido() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  const mostrarModal = (titulo: string, mensaje: string, accion?: () => void) => {
+    setModal({ visible: true, titulo, mensaje, accion });
+  };
+
   const confirmarPedido = async () => {
     if (!session) {
-      Alert.alert("Inicia sesión", "Debes iniciar sesión antes de confirmar el pedido.", [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Iniciar sesión", onPress: () => router.navigate("/tabs/perfil" as any) },
-      ]);
+      mostrarModal("Inicia sesión", "Debes iniciar sesión antes de confirmar el pedido.", () => router.navigate("/tabs/perfil" as any));
+      return;
+    }
+
+    if (session.user.email === ADMIN_EMAIL) {
+      mostrarModal("Admin", "El administrador no puede hacer pedidos.");
       return;
     }
 
     setEnviando(true);
     const user = session.user;
 
-    const { data: perfil } = await supabase
-      .from("perfiles")
-      .select("telefono")
-      .eq("id", user.id)
-      .single();
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", user.id)
-      .single();
+    const { data: perfil } = await supabase.from("perfiles").select("telefono").eq("id", user.id).single();
+    const { data: profile } = await supabase.from("profiles").select("username").eq("id", user.id).single();
 
     const grupoId = `${user.id}-${Date.now()}`;
 
@@ -94,10 +96,10 @@ export default function Pedido() {
     setEnviando(false);
 
     if (error) {
-      Alert.alert("Error", "No se pudo enviar el pedido: " + error.message);
+      mostrarModal("Error", "No se pudo enviar el pedido: " + error.message);
     } else {
       vaciar();
-      Alert.alert("¡Pedido enviado! 🎂", "Tu pedido ha sido recibido. Te avisaremos cuando esté listo.");
+      mostrarModal("¡Pedido enviado! 🎂", "Tu pedido ha sido recibido. Te avisaremos cuando esté listo.");
     }
   };
 
@@ -115,6 +117,31 @@ export default function Pedido() {
 
   return (
     <View style={styles.container}>
+      <Modal transparent visible={modal.visible} animationType="fade">
+        <View style={styles.modalFondo}>
+          <View style={styles.modalCaja}>
+            <Text style={styles.modalTitulo}>{modal.titulo}</Text>
+            <Text style={styles.modalMensaje}>{modal.mensaje}</Text>
+            <View style={styles.modalBotones}>
+              {modal.accion ? (
+                <>
+                  <TouchableOpacity style={styles.modalBotonCancelar} onPress={() => setModal({ ...modal, visible: false })}>
+                    <Text style={styles.modalBotonCancelarTexto}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalBotonConfirmar} onPress={() => { setModal({ ...modal, visible: false }); modal.accion!(); }}>
+                    <Text style={styles.modalBotonConfirmarTexto}>Iniciar sesión</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity style={styles.modalBotonConfirmar} onPress={() => setModal({ ...modal, visible: false })}>
+                  <Text style={styles.modalBotonConfirmarTexto}>OK</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Text style={styles.titulo}>Mi Pedido</Text>
       <Text style={styles.subtitulo}>Revisa y confirma tu pedido</Text>
 
@@ -140,18 +167,8 @@ export default function Pedido() {
               <View style={styles.detalle}>
                 <Text style={styles.detalleLabel}>Tamaño</Text>
                 <Text style={styles.detalleValor}>{item.tamaño}</Text>
-                {item.descripcionDiseño ? (
-                  <>
-                    <Text style={styles.detalleLabel}>Descripción del diseño</Text>
-                    <Text style={styles.detalleValor}>{item.descripcionDiseño}</Text>
-                  </>
-                ) : null}
-                {item.mensajeTarta ? (
-                  <>
-                    <Text style={styles.detalleLabel}>Mensaje de la tarta</Text>
-                    <Text style={styles.detalleValor}>{item.mensajeTarta}</Text>
-                  </>
-                ) : null}
+                {item.descripcionDiseño ? (<><Text style={styles.detalleLabel}>Descripción del diseño</Text><Text style={styles.detalleValor}>{item.descripcionDiseño}</Text></>) : null}
+                {item.mensajeTarta ? (<><Text style={styles.detalleLabel}>Mensaje de la tarta</Text><Text style={styles.detalleValor}>{item.mensajeTarta}</Text></>) : null}
               </View>
             )}
           </View>
@@ -204,4 +221,13 @@ const styles = StyleSheet.create({
   totalPrecio: { fontSize: 20, fontWeight: "bold", color: "#000" },
   botonConfirmar: { backgroundColor: "#000", paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   botonConfirmarTexto: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  modalFondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 30 },
+  modalCaja: { backgroundColor: "#fff", borderRadius: 16, padding: 24, width: "100%" },
+  modalTitulo: { fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 12 },
+  modalMensaje: { fontSize: 14, color: "#444", lineHeight: 22, marginBottom: 24 },
+  modalBotones: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  modalBotonCancelar: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: "#ddd" },
+  modalBotonCancelarTexto: { fontSize: 14, color: "#555" },
+  modalBotonConfirmar: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: "#000" },
+  modalBotonConfirmarTexto: { fontSize: 14, color: "#fff", fontWeight: "bold" },
 });

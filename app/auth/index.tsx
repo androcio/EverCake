@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { supabase } from "../../supabaseConfig";
 
 export default function Index() {
@@ -29,7 +29,7 @@ export default function Index() {
 };
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    <View style={{ flex: 1 }}>
       <View style={styles.container}>
 
         <TouchableOpacity style={styles.backButton} onPress={() => router.replace("/tabs/cartelera" as any)}>
@@ -66,7 +66,7 @@ export default function Index() {
           <View style={styles.linea} />
         </View>
       </View>
-    </TouchableWithoutFeedback>
+    </View>
   );
 }
 

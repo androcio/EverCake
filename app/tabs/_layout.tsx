@@ -1,17 +1,18 @@
-import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image } from "react-native";
+import { Image, Text } from "react-native";
 import { supabase } from "../../supabaseConfig";
 
-const ADMIN_EMAIL = "info@tartasdeautor.com";
+const ADMIN_EMAIL = "agarcia@itpfp.com";
 
 export default function RootLayout() {
   const [email, setEmail] = useState<string | null>(null);
+  const [listo, setListo] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setEmail(session?.user?.email ?? null);
+      setListo(true);
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setEmail(session?.user?.email ?? null);
@@ -19,10 +20,13 @@ export default function RootLayout() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  if (!listo) return null;
+
   const esAdmin = email === ADMIN_EMAIL;
 
   return (
     <Tabs
+      initialRouteName={esAdmin ? "perfil" : "cartelera"}
       screenOptions={{
         headerStyle: { backgroundColor: "#000" },
         headerTintColor: "#fff",
@@ -49,7 +53,7 @@ export default function RootLayout() {
         options={{
           href: esAdmin ? null : "/tabs/cartelera",
           tabBarLabel: "",
-          tabBarIcon: ({ color }) => <Ionicons name="grid-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>🏪</Text>,
         }}
       />
       <Tabs.Screen
@@ -57,14 +61,14 @@ export default function RootLayout() {
         options={{
           href: esAdmin ? null : "/tabs/pedido",
           tabBarLabel: "",
-          tabBarIcon: ({ color }) => <Ionicons name="receipt-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>🛒</Text>,
         }}
       />
       <Tabs.Screen
         name="perfil"
         options={{
           tabBarLabel: "",
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>👤</Text>,
         }}
       />
     </Tabs>

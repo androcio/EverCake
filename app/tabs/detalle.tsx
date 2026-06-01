@@ -1,14 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+  Image, Modal, ScrollView, StyleSheet, Text,
+  TextInput, TouchableOpacity, View,
 } from "react-native";
 import { useCarrito } from "../context/CarritoContext";
 
@@ -61,13 +55,18 @@ export default function Detalle() {
   const [tamañoSeleccionado, setTamañoSeleccionado] = useState<string | null>(null);
   const [descripcionDiseño, setDescripcionDiseño] = useState("");
   const [mensajeTarta, setMensajeTarta] = useState("");
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMensaje, setModalMensaje] = useState("");
+  const [modalConfirmar, setModalConfirmar] = useState(false);
 
   const precioSeleccionado = TAMAÑOS.find(t => t.id === tamañoSeleccionado)?.precio ?? 0;
   const imagenLocal = IMAGENES[Number(id)];
 
   const handleAñadir = () => {
     if (!tamañoSeleccionado) {
-      Alert.alert("Falta el tamaño", "Por favor selecciona un tamaño antes de añadir al carrito.");
+      setModalMensaje("Por favor selecciona un tamaño antes de añadir al carrito.");
+      setModalConfirmar(false);
+      setModalVisible(true);
       return;
     }
 
@@ -75,40 +74,68 @@ export default function Detalle() {
       `📦 Tamaño: ${tamañoSeleccionado} · ${precioSeleccionado}€`,
       descripcionDiseño ? `🎨 Diseño: ${descripcionDiseño}` : null,
       mensajeTarta ? `💬 Mensaje: "${mensajeTarta}"` : null,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    ].filter(Boolean).join("\n");
 
-    Alert.alert(
-      `Añadir ${name}`,
-      resumen,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          onPress: () => {
-            añadir({
-              id: Number(id),
-              name: name as string,
-              description: description as string,
-              price: precioSeleccionado,
-              image: Number(id),
-              tamaño: tamañoSeleccionado,
-              descripcionDiseño,
-              mensajeTarta,
-            });
-            setTamañoSeleccionado(null);
-            setDescripcionDiseño("");
-            setMensajeTarta("");
-            router.replace("/tabs/cartelera");
-          },
-        },
-      ]
-    );
+    setModalMensaje(resumen);
+    setModalConfirmar(true);
+    setModalVisible(true);
+  };
+
+  const confirmar = () => {
+    setModalVisible(false);
+    añadir({
+      id: Number(id),
+      name: name as string,
+      description: description as string,
+      price: precioSeleccionado,
+      image: Number(id),
+      tamaño: tamañoSeleccionado!,
+      descripcionDiseño,
+      mensajeTarta,
+    });
+    setTamañoSeleccionado(null);
+    setDescripcionDiseño("");
+    setMensajeTarta("");
+    router.replace("/tabs/cartelera");
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+      {/* Modal propio en vez de Alert */}
+      <Modal transparent visible={modalVisible} animationType="fade">
+        <View style={styles.modalFondo}>
+          <View style={styles.modalCaja}>
+            <Text style={styles.modalTitulo}>
+              {modalConfirmar ? `Añadir ${name}` : "Falta el tamaño"}
+            </Text>
+            <Text style={styles.modalMensaje}>{modalMensaje}</Text>
+            <View style={styles.modalBotones}>
+              {modalConfirmar ? (
+                <>
+                  <TouchableOpacity
+                    style={styles.modalBotonCancelar}
+                    onPress={() => setModalVisible(false)}
+                  >
+                    <Text style={styles.modalBotonCancelarTexto}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.modalBotonConfirmar} onPress={confirmar}>
+                    <Text style={styles.modalBotonConfirmarTexto}>Confirmar</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <TouchableOpacity
+                  style={styles.modalBotonConfirmar}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.modalBotonConfirmarTexto}>OK</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Image source={imagenLocal} style={styles.imagen} />
       <Text style={styles.nombre}>{name}</Text>
       <Text style={styles.descripcion}>{description}</Text>
@@ -187,11 +214,7 @@ const styles = StyleSheet.create({
     padding: 14, marginBottom: 10, backgroundColor: "#fafafa",
   },
   opcionSeleccionada: { borderColor: "#000", backgroundColor: "#f0f0f0" },
-  radio: {
-    width: 20, height: 20, borderRadius: 10,
-    borderWidth: 2, borderColor: "#000",
-    alignItems: "center", justifyContent: "center",
-  },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: "#000", alignItems: "center", justifyContent: "center" },
   radioBola: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#000" },
   opcionLabel: { fontSize: 15, fontWeight: "600", color: "#000" },
   opcionDetalle: { fontSize: 13, color: "#888", marginTop: 2 },
@@ -202,4 +225,13 @@ const styles = StyleSheet.create({
   },
   boton: { backgroundColor: "#000", borderRadius: 12, paddingVertical: 16, alignItems: "center", marginTop: 8 },
   botonTexto: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  modalFondo: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 30 },
+  modalCaja: { backgroundColor: "#fff", borderRadius: 16, padding: 24, width: "100%" },
+  modalTitulo: { fontSize: 18, fontWeight: "bold", color: "#000", marginBottom: 12 },
+  modalMensaje: { fontSize: 14, color: "#444", lineHeight: 22, marginBottom: 24 },
+  modalBotones: { flexDirection: "row", justifyContent: "flex-end", gap: 12 },
+  modalBotonCancelar: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1, borderColor: "#ddd" },
+  modalBotonCancelarTexto: { fontSize: 14, color: "#555" },
+  modalBotonConfirmar: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: "#000" },
+  modalBotonConfirmarTexto: { fontSize: 14, color: "#fff", fontWeight: "bold" },
 });
