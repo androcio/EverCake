@@ -2,7 +2,7 @@ import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../supabaseConfig";
 
-const ADMIN_EMAIL = "info@tartasdeautor.com";
+const ADMIN_EMAIL = "agarcia@itpfp.com";
 
 export default function Index() {
   const [email, setEmail] = useState<string | null | undefined>(undefined);
