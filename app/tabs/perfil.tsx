@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { supabase } from "../../supabaseConfig";
 
-const ADMIN_EMAIL = "agarcia@itpfp.com";
+const ADMIN_EMAIL = "info@tartasdeautor.com";
 
 type Pedido = {
   id: string;
